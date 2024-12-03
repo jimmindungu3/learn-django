@@ -1,5 +1,6 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ValidationError
 import json
 from .models import User
 
@@ -10,25 +11,31 @@ def home(request):
 
 @csrf_exempt
 def create_user(request):
-    if request.method == "POST":
-        try:
-            # Parse the JSON request body
-            user_data = json.loads(request.body)
-            username = user_data.get('username')
-            email = user_data.get('email')
-            phone_number = user_data.get('phone_number')
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST method is allowed"}, status=405)
 
-            # Validate received data
-            if not username or not email or not phone_number:
-                return JsonResponse({"error": "Ensure all user fields are present"})
-            
-            # Save user to DB if valid
-            new_user = User.objects.create(username=username, email=email, phone_number=phone_number)
-            print("Hit")
+    try:
+        # Parse the JSON request body
+        user_data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body"}, status=400)
 
-            # Send back success message on saving user
-            return JsonResponse({"Message": "User created successfully", "user": user_data}, status=201)
-        
-        except:
-            return JsonResponse({"message": "Internal Server Error"}, status=500)
-        
+    username = user_data.get('username')
+    email = user_data.get('email')
+    phone_number = user_data.get('phone_number')
+
+    # Validate received data
+    if not username or not email or not phone_number:
+        return JsonResponse({"error": "Ensure all user fields (username, email, phone_number) are present"}, status=400)
+
+    try:
+        # Save user to DB if valid
+        new_user = User.objects.create(username=username, email=email, phone_number=phone_number)
+        return JsonResponse(
+            {"message": "User created successfully", "user": {"username": username, "email": email, "phone_number": phone_number}}, 
+            status=201
+        )
+    except ValidationError as e:
+        return JsonResponse({"error": "Validation error", "details": str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": "Internal Server Error", "details": str(e)}, status=500)
