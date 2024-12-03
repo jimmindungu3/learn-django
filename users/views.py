@@ -8,7 +8,7 @@ from .models import User
 def home(request):
     return HttpResponse("Welcome To User's Home")
 
-
+# CREATE User Route
 @csrf_exempt
 def create_user(request):
     if request.method != "POST":
@@ -39,3 +39,18 @@ def create_user(request):
         return JsonResponse({"error": "Validation error", "details": str(e)}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Internal Server Error", "details": str(e)}, status=500)
+
+# DELETE User Route   
+@csrf_exempt
+def delete_user(request, username):
+    if request.method != "DELETE":
+        return JsonResponse({"error": "Only 'DELETE' method allowed"}, status=405)
+
+    try:
+        user = User.objects.get(username=username)
+        user.delete()
+        return JsonResponse({"message": f"User with username {username} deleted successfully"}, status=204)
+    except User.DoesNotExist:
+        return JsonResponse({"error": f"User with username {username} does not exist"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": f"An error occurred: {str(e)}"}, status=500)
