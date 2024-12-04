@@ -1,12 +1,14 @@
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError
+from django.core.serializers import serialize
 import json
 from .models import User
 
 # Create your views here.
 def home(request):
     return HttpResponse("Welcome To User's Home")
+
 
 # CREATE User Route
 @csrf_exempt
@@ -39,6 +41,40 @@ def create_user(request):
         return JsonResponse({"error": "Validation error", "details": str(e)}, status=400)
     except Exception as e:
         return JsonResponse({"error": "Internal Server Error", "details": str(e)}, status=500)
+    
+
+# GET all users route
+def get_all_users(request):
+    if request.method == "GET":
+        all_users = User.objects.values("user_id", "username", "email")  # Add other fields as needed
+        return JsonResponse({"users":list(all_users)}, safe=False)
+    return JsonResponse({"Error": "Only GET method allowed"}, status=405)
+
+
+
+@csrf_exempt
+def update_user(request, user_id):
+    if request.method == "PATCH":
+        try:
+            user = User.objects.get(user_id=user_id)
+        except User.DoesNotExist:
+            return JsonResponse({"Error": "User not found"}, status=404)
+
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"Error": "Invalid JSON data"}, status=400)
+
+        # Update user fields
+        for key, value in data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+
+        user.save()
+        return JsonResponse({"Message": "User updated successfully"})
+    
+    return JsonResponse({"Error": "Only PATCH method allowed"}, status=405)
+
 
 # DELETE User Route   
 @csrf_exempt
