@@ -42,15 +42,15 @@ def create_user(request):
 
 # DELETE User Route   
 @csrf_exempt
-def delete_user(request, username):
+def delete_user(request, user_id):
     if request.method != "DELETE":
         return JsonResponse({"error": "Only 'DELETE' method allowed"}, status=405)
 
     try:
-        user = User.objects.get(username=username)
+        user = User.objects.get(user_id=user_id)
         user.delete()
-        return JsonResponse({"message": f"User with username {username} deleted successfully"}, status=204)
+        return JsonResponse({"message": f"User with user_id {user_id} deleted successfully"}, status=204)
     except User.DoesNotExist:
-        return JsonResponse({"error": f"User with username {username} does not exist"}, status=404)
+        return JsonResponse({"error": f"User with user_id {user_id} does not exist"}, status=404)
     except Exception as e:
         return JsonResponse({"error": f"An error occurred: {str(e)}"}, status=500)
